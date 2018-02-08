@@ -1,5 +1,6 @@
 package com.mellobit.garrymckee.sunset;
 
+import android.animation.Animator;
 import android.animation.AnimatorSet;
 import android.animation.ArgbEvaluator;
 import android.animation.ObjectAnimator;
@@ -7,6 +8,7 @@ import android.content.res.Resources;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,10 +23,15 @@ public class SunsetFragment extends Fragment {
     private View mSceneView;
     private View mSunView;
     private View mSkyView;
+    private View mSeaView;
 
     private int mBlueSkyColor;
     private int mSunsetSkyColor;
     private int mNightSkyColor;
+
+    float mSunTopPosition;
+
+    private boolean isSunSet;
 
     public static SunsetFragment newInstance() {
         return new SunsetFragment();
@@ -38,6 +45,7 @@ public class SunsetFragment extends Fragment {
         mSceneView = v;
         mSunView = v.findViewById(R.id.sun);
         mSkyView = v.findViewById(R.id.sky);
+        mSeaView = v.findViewById(R.id.sea);
 
         Resources resources = getResources();
         mBlueSkyColor = resources.getColor(R.color.blue_sky);
@@ -47,37 +55,124 @@ public class SunsetFragment extends Fragment {
         mSceneView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                startAnimation();
+                if(!isSunSet){
+                    startSunSetAnimation();
+                } else {
+                    startSunRiseAnimation();
+                }
             }
         });
+
         return v;
     }
 
-    private void startAnimation() {
+    @Override
+    public void onResume() {
+        super.onResume();
+        mSunTopPosition = mSunView.getTop();
+    }
+
+    private void startSunSetAnimation() {
         float sunYStart = mSunView.getTop();
+        Log.d("SUNCOORDS", "Sun at: " + sunYStart);
         float sunYEnd = mSkyView.getHeight();
 
         ObjectAnimator heightAnimator = ObjectAnimator
                 .ofFloat(mSunView, "y", sunYStart, sunYEnd)
-                .setDuration(3000);
+                .setDuration(1000);
 
         ObjectAnimator sunSkyAnimator = ObjectAnimator
                 .ofInt(mSkyView, "backgroundColor", mBlueSkyColor, mSunsetSkyColor)
-                .setDuration(3000);
+                .setDuration(1000);
 
         ObjectAnimator nightSkyAnimator = ObjectAnimator
                 .ofInt(mSkyView, "backgroundColor", mSunsetSkyColor, mNightSkyColor)
-                .setDuration(3000);
+                .setDuration(1000);
 
         sunSkyAnimator.setEvaluator(new ArgbEvaluator());
         nightSkyAnimator.setEvaluator(new ArgbEvaluator());
         heightAnimator.setInterpolator(new AccelerateInterpolator());
 
-        AnimatorSet animatorSet = new AnimatorSet();
-        animatorSet
+        AnimatorSet sunSetAnimatorSet = new AnimatorSet();
+        sunSetAnimatorSet
                 .play(heightAnimator)
                 .with(sunSkyAnimator)
                 .before(nightSkyAnimator);
-        animatorSet.start();
+        sunSetAnimatorSet.start();
+
+        sunSetAnimatorSet.addListener(new Animator.AnimatorListener() {
+            @Override
+            public void onAnimationStart(Animator animator) {
+
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animator) {
+                Log.i("TEST", "Animation Finished");
+                isSunSet = true;
+            }
+
+            @Override
+            public void onAnimationCancel(Animator animator) {
+
+            }
+
+            @Override
+            public void onAnimationRepeat(Animator animator) {
+
+            }
+        });
+    }
+
+    private void startSunRiseAnimation() {
+        float sunYStart = mSeaView.getTop();
+        float sunYEnd = mSunTopPosition;
+        Log.d("SUNCOORDS", "Sun to: " + sunYEnd);
+
+        ObjectAnimator heightAnimator = ObjectAnimator
+                .ofFloat(mSunView, "y", sunYStart, sunYEnd)
+                .setDuration(1000);
+
+        ObjectAnimator sunSkyAnimator = ObjectAnimator
+                .ofInt(mSkyView, "backgroundColor", mSunsetSkyColor, mBlueSkyColor)
+                .setDuration(1000);
+
+        ObjectAnimator nightSkyAnimator = ObjectAnimator
+                .ofInt(mSkyView, "backgroundColor", mNightSkyColor, mSunsetSkyColor)
+                .setDuration(1000);
+
+        sunSkyAnimator.setEvaluator(new ArgbEvaluator());
+        nightSkyAnimator.setEvaluator(new ArgbEvaluator());
+        heightAnimator.setInterpolator(new AccelerateInterpolator());
+
+        AnimatorSet sunRiseAnimatorSet = new AnimatorSet();
+        sunRiseAnimatorSet
+                .play(heightAnimator)
+                .with(sunSkyAnimator)
+                .after(nightSkyAnimator);
+        sunRiseAnimatorSet.start();
+
+        sunRiseAnimatorSet.addListener(new Animator.AnimatorListener() {
+            @Override
+            public void onAnimationStart(Animator animator) {
+
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animator) {
+                Log.i("TEST", "Animation Finished");
+                isSunSet = false;
+            }
+
+            @Override
+            public void onAnimationCancel(Animator animator) {
+
+            }
+
+            @Override
+            public void onAnimationRepeat(Animator animator) {
+
+            }
+        });
     }
 }
