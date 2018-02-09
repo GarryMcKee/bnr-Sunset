@@ -22,10 +22,9 @@ import android.view.animation.AccelerateInterpolator;
 
 public class SunsetFragment extends Fragment implements ViewTreeObserver.OnGlobalLayoutListener{
 
-    private static final String KEY_SUN_TOP = "keySunTop";
-
     private View mSceneView;
     private View mSunView;
+    private View mReflectionView;
     private View mSkyView;
     private View mSeaView;
 
@@ -34,8 +33,10 @@ public class SunsetFragment extends Fragment implements ViewTreeObserver.OnGloba
     private int mNightSkyColor;
 
     float mSunTopPosition;
+    float mReflectionBottomPosition;
 
     private boolean isSunSet;
+    private static final int ANIMATION_TIME = 2500;
 
     public static SunsetFragment newInstance() {
         return new SunsetFragment();
@@ -50,6 +51,7 @@ public class SunsetFragment extends Fragment implements ViewTreeObserver.OnGloba
         mSunView = v.findViewById(R.id.sun);
         mSkyView = v.findViewById(R.id.sky);
         mSeaView = v.findViewById(R.id.sea);
+        mReflectionView = v.findViewById(R.id.reflection);
 
         Resources resources = getResources();
         mBlueSkyColor = resources.getColor(R.color.blue_sky);
@@ -71,42 +73,78 @@ public class SunsetFragment extends Fragment implements ViewTreeObserver.OnGloba
 
         return v;
     }
+    @Override
+    public void onGlobalLayout() {
+        mReflectionView.setY(mSkyView.getHeight() - mSunView.getBottom());
+        String string = "Distance from bottom of sun, to horizon is: " + mReflectionView.getY();
+        String string2 = "Distance from bottom of sun, to horizon is: " + (mSkyView.getHeight() - mSunView.getBottom());
+        Log.d("DISTCHECK", string);
+        Log.d("DISTCHECK", string2);
+        if(mSunTopPosition == 0) {
+            Log.d("SUNCOORDS", "Setting SunTopPosition to: " + mSunView.getTop());
+            mSunTopPosition = mSunView.getTop();
+        } else {
+            Log.d("SUNCOORDS", "SunTopPosition already set: " + mSunTopPosition);
+        }
+
+
+        startSunPulseAnimation();
+    }
+
 
     private void startSunPulseAnimation() {
         ObjectAnimator sunPulseAnimator = ObjectAnimator
                 .ofFloat(mSunView, "scaleX", 1f, 1.08f)
                 .setDuration(500);
 
+        ObjectAnimator reflectionPulseAnimator = ObjectAnimator
+                .ofFloat(mReflectionView, "scaleX", 1f, 1.08f)
+                .setDuration(500);
+
         sunPulseAnimator.setRepeatCount(ValueAnimator.INFINITE);
         sunPulseAnimator.setRepeatMode(ValueAnimator.REVERSE);
 
+        reflectionPulseAnimator.setRepeatCount(ValueAnimator.INFINITE);
+        reflectionPulseAnimator.setRepeatMode(ValueAnimator.REVERSE);
+
         sunPulseAnimator.start();
+        reflectionPulseAnimator.start();
     }
 
     private void startSunSetAnimation() {
-        float sunYStart = mSunView.getTop();
-        Log.d("SUNCOORDS", "Sun at: " + sunYStart);
+
+        checkDistance();
+
+        float sunYStart = mSunView.getY();
+        float reflectionYStart = mReflectionView.getTop();
+
         float sunYEnd = mSkyView.getHeight();
 
         ObjectAnimator heightAnimator = ObjectAnimator
                 .ofFloat(mSunView, "y", sunYStart, sunYEnd)
-                .setDuration(1000);
+                .setDuration(ANIMATION_TIME);
+
+        ObjectAnimator reflectionHeightAnimator = ObjectAnimator
+                .ofFloat(mReflectionView, "y", mReflectionView.getY(), 0 - mReflectionView.getHeight())
+                .setDuration(ANIMATION_TIME);
 
         ObjectAnimator sunSkyAnimator = ObjectAnimator
                 .ofInt(mSkyView, "backgroundColor", mBlueSkyColor, mSunsetSkyColor)
-                .setDuration(1000);
+                .setDuration(ANIMATION_TIME);
 
         ObjectAnimator nightSkyAnimator = ObjectAnimator
                 .ofInt(mSkyView, "backgroundColor", mSunsetSkyColor, mNightSkyColor)
-                .setDuration(1000);
+                .setDuration(ANIMATION_TIME);
 
         sunSkyAnimator.setEvaluator(new ArgbEvaluator());
         nightSkyAnimator.setEvaluator(new ArgbEvaluator());
         heightAnimator.setInterpolator(new AccelerateInterpolator());
+        reflectionHeightAnimator.setInterpolator(new AccelerateInterpolator());
 
         AnimatorSet sunSetAnimatorSet = new AnimatorSet();
         sunSetAnimatorSet
                 .play(heightAnimator)
+                .with(reflectionHeightAnimator)
                 .with(sunSkyAnimator)
                 .before(nightSkyAnimator);
         sunSetAnimatorSet.start();
@@ -135,6 +173,17 @@ public class SunsetFragment extends Fragment implements ViewTreeObserver.OnGloba
         });
     }
 
+    private void checkDistance() {
+        float topDistance;
+        float bottomDistance;
+
+        topDistance = mSkyView.getHeight() - mSunView.getBottom();
+        bottomDistance = mReflectionView.getY();
+
+        Log.d("DISTCHECK", "Top Distance: " + topDistance);
+        Log.d("DISTCHECK", "Bottom Distance: " + bottomDistance);
+    }
+
     private void startSunRiseAnimation() {
         float sunYStart = mSeaView.getTop();
         float sunYEnd = mSunTopPosition;
@@ -142,15 +191,15 @@ public class SunsetFragment extends Fragment implements ViewTreeObserver.OnGloba
 
         ObjectAnimator heightAnimator = ObjectAnimator
                 .ofFloat(mSunView, "y", sunYStart, sunYEnd)
-                .setDuration(1000);
+                .setDuration(ANIMATION_TIME);
 
         ObjectAnimator sunSkyAnimator = ObjectAnimator
                 .ofInt(mSkyView, "backgroundColor", mSunsetSkyColor, mBlueSkyColor)
-                .setDuration(1000);
+                .setDuration(ANIMATION_TIME);
 
         ObjectAnimator nightSkyAnimator = ObjectAnimator
                 .ofInt(mSkyView, "backgroundColor", mNightSkyColor, mSunsetSkyColor)
-                .setDuration(1000);
+                .setDuration(ANIMATION_TIME);
 
         sunSkyAnimator.setEvaluator(new ArgbEvaluator());
         nightSkyAnimator.setEvaluator(new ArgbEvaluator());
@@ -185,18 +234,5 @@ public class SunsetFragment extends Fragment implements ViewTreeObserver.OnGloba
 
             }
         });
-    }
-
-    @Override
-    public void onGlobalLayout() {
-        if(mSunTopPosition == 0) {
-            Log.d("SUNCOORDS", "Setting SunTopPosition to: " + mSunView.getTop());
-            mSunTopPosition = mSunView.getTop();
-        } else {
-            Log.d("SUNCOORDS", "SunTopPosition already set: " + mSunTopPosition);
-        }
-
-
-        startSunPulseAnimation();
     }
 }
