@@ -4,6 +4,7 @@ import android.animation.Animator;
 import android.animation.AnimatorSet;
 import android.animation.ArgbEvaluator;
 import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.content.res.Resources;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -12,13 +13,16 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.view.animation.AccelerateInterpolator;
 
 /**
  * Created by Garry on 27/01/2018.
  */
 
-public class SunsetFragment extends Fragment {
+public class SunsetFragment extends Fragment implements ViewTreeObserver.OnGlobalLayoutListener{
+
+    private static final String KEY_SUN_TOP = "keySunTop";
 
     private View mSceneView;
     private View mSunView;
@@ -63,13 +67,20 @@ public class SunsetFragment extends Fragment {
             }
         });
 
+        mSceneView.getViewTreeObserver().addOnGlobalLayoutListener(this);
+
         return v;
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
-        mSunTopPosition = mSunView.getTop();
+    private void startSunPulseAnimation() {
+        ObjectAnimator sunPulseAnimator = ObjectAnimator
+                .ofFloat(mSunView, "scaleX", 1f, 1.08f)
+                .setDuration(500);
+
+        sunPulseAnimator.setRepeatCount(ValueAnimator.INFINITE);
+        sunPulseAnimator.setRepeatMode(ValueAnimator.REVERSE);
+
+        sunPulseAnimator.start();
     }
 
     private void startSunSetAnimation() {
@@ -174,5 +185,18 @@ public class SunsetFragment extends Fragment {
 
             }
         });
+    }
+
+    @Override
+    public void onGlobalLayout() {
+        if(mSunTopPosition == 0) {
+            Log.d("SUNCOORDS", "Setting SunTopPosition to: " + mSunView.getTop());
+            mSunTopPosition = mSunView.getTop();
+        } else {
+            Log.d("SUNCOORDS", "SunTopPosition already set: " + mSunTopPosition);
+        }
+
+
+        startSunPulseAnimation();
     }
 }
