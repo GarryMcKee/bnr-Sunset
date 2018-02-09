@@ -116,7 +116,6 @@ public class SunsetFragment extends Fragment implements ViewTreeObserver.OnGloba
         checkDistance();
 
         float sunYStart = mSunView.getY();
-        float reflectionYStart = mReflectionView.getTop();
 
         float sunYEnd = mSkyView.getHeight();
 
@@ -173,17 +172,6 @@ public class SunsetFragment extends Fragment implements ViewTreeObserver.OnGloba
         });
     }
 
-    private void checkDistance() {
-        float topDistance;
-        float bottomDistance;
-
-        topDistance = mSkyView.getHeight() - mSunView.getBottom();
-        bottomDistance = mReflectionView.getY();
-
-        Log.d("DISTCHECK", "Top Distance: " + topDistance);
-        Log.d("DISTCHECK", "Bottom Distance: " + bottomDistance);
-    }
-
     private void startSunRiseAnimation() {
         float sunYStart = mSeaView.getTop();
         float sunYEnd = mSunTopPosition;
@@ -197,17 +185,24 @@ public class SunsetFragment extends Fragment implements ViewTreeObserver.OnGloba
                 .ofInt(mSkyView, "backgroundColor", mSunsetSkyColor, mBlueSkyColor)
                 .setDuration(ANIMATION_TIME);
 
+        ObjectAnimator reflectionHeightAnimator = ObjectAnimator
+                .ofFloat(mReflectionView, "y", 0 - mReflectionView.getHeight(), (mSkyView.getHeight() - (mSunTopPosition + mSunView.getHeight())))
+                .setDuration(ANIMATION_TIME);
+
         ObjectAnimator nightSkyAnimator = ObjectAnimator
                 .ofInt(mSkyView, "backgroundColor", mNightSkyColor, mSunsetSkyColor)
                 .setDuration(ANIMATION_TIME);
 
+
         sunSkyAnimator.setEvaluator(new ArgbEvaluator());
         nightSkyAnimator.setEvaluator(new ArgbEvaluator());
         heightAnimator.setInterpolator(new AccelerateInterpolator());
+        reflectionHeightAnimator.setInterpolator(new AccelerateInterpolator());
 
         AnimatorSet sunRiseAnimatorSet = new AnimatorSet();
         sunRiseAnimatorSet
                 .play(heightAnimator)
+                .with(reflectionHeightAnimator)
                 .with(sunSkyAnimator)
                 .after(nightSkyAnimator);
         sunRiseAnimatorSet.start();
@@ -234,5 +229,16 @@ public class SunsetFragment extends Fragment implements ViewTreeObserver.OnGloba
 
             }
         });
+    }
+
+    private void checkDistance() {
+        float topDistance;
+        float bottomDistance;
+
+        topDistance = mSkyView.getHeight() - mSunView.getBottom();
+        bottomDistance = mReflectionView.getY();
+
+        Log.d("DISTCHECK", "Top Distance: " + topDistance);
+        Log.d("DISTCHECK", "Bottom Distance: " + bottomDistance);
     }
 }
